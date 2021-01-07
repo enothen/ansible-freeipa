@@ -1,0 +1,30 @@
+---
+- name: Include create_users_json.yml
+  import_playbook: create_users_json.yml
+
+- name: Test that users are not created when using check_mode
+  hosts: ipaserver
+  become: true
+  gather_facts: false
+
+  tasks:
+  - name: Include users.json
+    include_vars:
+      file: users.json
+
+  - name: Dry run of len:{{ users | length }} users that would normally be created
+    ipauser:
+      ipaadmin_password: SomeADMINpassword
+      users: "{{ users }}"
+    check_mode: True
+    register: ipauser
+    failed_when: not ipauser.changed
+
+  - name: Validation that len:{{ users | length }} users were not created
+    ipauser:
+      ipaadmin_password: SomeADMINpassword
+      users: "{{ users }}"
+      state: absent
+    check_mode: False
+    register: ipauser
+    failed_when: ipauser.changed
